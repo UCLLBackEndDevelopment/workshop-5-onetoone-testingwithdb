@@ -1,11 +1,13 @@
 package be.ucll.service;
 
 import be.ucll.model.Loan;
+import be.ucll.model.Profile;
 import be.ucll.model.User;
 import be.ucll.repository.LoanRepository;
+import be.ucll.repository.ProfileRepository;
 import be.ucll.repository.UserRepository;
+import org.hibernate.service.spi.ServiceException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Repository;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,11 +18,13 @@ public class UserService {
 
     private UserRepository userRepository;
     private LoanRepository loanRepository;
+    private ProfileRepository profileRepository;
 
     @Autowired
-    public UserService(UserRepository userRepository, LoanRepository loanRepository) {
+    public UserService(UserRepository userRepository, LoanRepository loanRepository, ProfileRepository profileRepository) {
         this.userRepository = userRepository;
         this.loanRepository = loanRepository;
+        this.profileRepository = profileRepository;
     }
 
     public List<User> getAllUsers() {
@@ -60,13 +64,19 @@ public class UserService {
         if (userRepository.existsByEmail(user.getEmail())) {
             throw new RuntimeException("User already exists.");
         }
+
+        if (user.getProfile() != null) {
+            Profile profile = profileRepository.save(user.getProfile());
+            user.setProfile(profile);
+        }
+
         return userRepository.save(user);
     }
 
     public User updateUser(String email, User updatedUser) {
         Optional<User> userOptional = userRepository.findByEmail(email);
 
-        if (userOptional.isEmpty()){
+        if (userOptional.isEmpty()) {
             throw new RuntimeException("User does not exist.");
         }
 
@@ -116,5 +126,30 @@ public class UserService {
         }
 
         return users;
+    }
+
+    public List<User> getUsersWithInterest(String interest) {
+        if (interest.isBlank()) {
+            throw new RuntimeException("Interest must be provided.");
+        }
+
+        return userRepository.findUsersByProfile_InterestsIgnoreCaseContains(interest);
+    }
+
+    public List<User> getUsersOlderThanWithInterestSortedByLocation(int age, String interest) {
+        if (age < 0 || age > 150) {
+            throw new RuntimeException("Invalid age. Age must be between 0 and 150.");
+        }
+
+        if (interest.isBlank()) {
+            throw new RuntimeException("Interest cannot be empty.");
+        }
+
+        List<User> users = userRepository.findUsersByProfile_InterestsIgnoreCaseContainsAndAgeGreaterThanOrderByProfile_Location(interest, age);
+        if (users.size() == 0) {
+            throw new ServiceException("No users found with interest in " + interest + " and older than " + age);
+        }
+        return users;
+
     }
 }

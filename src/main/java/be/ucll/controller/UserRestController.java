@@ -82,6 +82,16 @@ public class UserRestController {
         return userService.getAllUsersOlderThanAndNameContaining(age, name);
     }
 
+    @GetMapping("/interest/{interest}")
+    public List<User> getUsersWithInterest(@PathVariable String interest) {
+        return userService.getUsersWithInterest(interest);
+    }
+
+    @GetMapping("/interest/{interest}/{age}")
+    public List<User> getUsersOlderThanWithInterestSortedByLocation(@PathVariable String interest, @PathVariable int age) {
+        return userService.getUsersOlderThanWithInterestSortedByLocation(age, interest);
+    }
+
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler({RuntimeException.class})
     public Map<String, String> handleRuntimeException(RuntimeException ex) {
